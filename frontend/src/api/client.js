@@ -43,7 +43,7 @@ apiClient.interceptors.response.use(
       standardizedError.code = 'REQUEST_TIMEOUT'
       standardizedError.status = 504
     } else if (!error.response) {
-      standardizedError.message = 'Unable to reach the AnimeVerse backend server. Please verify Django is running on port 8000.'
+      standardizedError.message = 'Unable to reach the AnimeVerse backend server. Please verify the server is running and network is connected.'
       standardizedError.code = 'BACKEND_OFFLINE'
       standardizedError.status = 503
     }

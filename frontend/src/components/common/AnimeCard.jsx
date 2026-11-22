@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Star, Play, ImageOff, Layers } from 'lucide-react'
+import { Star, Play, ImageOff, Layers, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import AddToListButton from '../watchlist/AddToListButton'
 
@@ -33,17 +33,18 @@ export const AnimeCard = ({ anime, priority = false }) => {
   return (
     <Link
       to={destinationUrl}
-      className="group relative flex flex-col rounded-2xl overflow-hidden bg-purple-950/25 border border-purple-500/20 hover:border-purple-400/60 transition-all duration-300 hover:shadow-[0_0_24px_rgba(168,85,247,0.3)] hover:-translate-y-1.5 focus:outline-none focus:ring-2 focus:ring-purple-400/60"
+      className="group relative flex flex-col rounded-2xl overflow-hidden bg-[#0d0f1e]/90 border border-purple-500/18 hover:border-purple-400/50 transition-all duration-200 hover:shadow-[0_8px_24px_rgba(168,85,247,0.2)] hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-purple-400/60"
     >
       {/* 3:4 Aspect Ratio Poster Container */}
-      <div className="relative w-full aspect-[3/4] bg-purple-950/50 overflow-hidden">
+      <div className="relative w-full aspect-[3/4] bg-purple-950/40 overflow-hidden">
         {poster_url && !imageError ? (
           <img
             src={poster_url}
             alt={displayTitle}
+            title={displayTitle}
             loading={priority ? 'eager' : 'lazy'}
             onError={() => setImageError(true)}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
           /* Honest neutral placeholder per SRS */
@@ -57,52 +58,53 @@ export const AnimeCard = ({ anime, priority = false }) => {
         )}
 
         {/* Top Badges: Score & Type (Left) & Watchlist Button (Right) */}
-        <div className="absolute top-2.5 inset-x-2.5 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 pointer-events-none">
+        <div className="absolute top-2 inset-x-2 flex items-center justify-between z-10 pointer-events-none">
+          <div className="flex flex-wrap items-center gap-1 max-w-[70%]">
             {scoreFormatted && (
-              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/80 backdrop-blur-md border border-cyan-400/40 text-cyan-300 text-xs font-bold shadow-[0_0_10px_rgba(6,182,212,0.3)]">
-                <Star className="w-3 h-3 fill-cyan-400 text-cyan-400" />
+              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/85 backdrop-blur-md border border-cyan-400/40 text-cyan-300 text-[11px] font-bold shadow-sm">
+                <Star className="w-2.5 h-2.5 fill-cyan-400 text-cyan-400" />
                 <span>{scoreFormatted}</span>
               </div>
             )}
 
             {anime_type && (
-              <span className="px-2 py-0.5 rounded-lg bg-black/80 backdrop-blur-md border border-purple-400/30 text-purple-300 text-[11px] font-semibold tracking-wider uppercase">
+              <span className="px-1.5 py-0.5 rounded-md bg-black/85 backdrop-blur-md border border-purple-400/30 text-purple-300 text-[10px] font-semibold tracking-wider uppercase">
                 {anime_type}
               </span>
             )}
 
             {is_franchise && entry_count > 1 && (
               <span
-                className="px-2 py-0.5 rounded-lg bg-indigo-950/90 backdrop-blur-md border border-indigo-400/50 text-indigo-300 text-[10px] font-bold tracking-wider uppercase flex items-center gap-1 shadow-[0_0_10px_rgba(99,102,241,0.35)]"
+                className="px-1.5 py-0.5 rounded-md bg-indigo-950/90 backdrop-blur-md border border-indigo-400/50 text-indigo-300 text-[9px] font-bold tracking-wider uppercase flex items-center gap-1"
                 title={`${entry_count} verified entries in this franchise`}
               >
-                <Layers className="w-3 h-3 text-indigo-300" />
-                <span>{entry_count} ENTRIES</span>
+                <Layers className="w-2.5 h-2.5 text-indigo-300" />
+                <span>{entry_count}</span>
               </span>
             )}
           </div>
 
-          <AddToListButton malId={mal_id} compact className="pointer-events-auto z-20" />
+          <div className="pointer-events-auto">
+            <AddToListButton malId={mal_id} compact />
+          </div>
         </div>
 
         {/* Play Overlay Hover effect */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-          <div className="w-12 h-12 rounded-full bg-purple-600/90 border border-purple-300 text-white flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.7)] transform scale-90 group-hover:scale-100 transition-transform">
-            <Play className="w-5 h-5 fill-white ml-0.5" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-full bg-purple-600/90 border border-purple-300 text-white flex items-center justify-center shadow-[0_0_18px_rgba(168,85,247,0.6)] transform scale-95 group-hover:scale-100 transition-transform">
+            <Play className="w-4 h-4 fill-white ml-0.5" />
           </div>
         </div>
 
         {/* Bottom Ep / Provenance / Cache Status strip over poster */}
         <div className="absolute bottom-2 inset-x-2 flex items-center justify-between text-[11px] text-slate-300 opacity-95 group-hover:opacity-100 transition-opacity">
           {total_episodes ? (
-            <span className="px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-sm text-[10px] font-mono border border-white/10">
+            <span className="px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-sm text-[10px] font-mono border border-white/10">
               {total_episodes} eps
             </span>
           ) : <span></span>}
 
           <div className="flex items-center gap-1">
-            {/* 1. Accurate Metadata Source Badge (Separated from Cache) */}
             {metadata_source && (
               <span
                 className={`px-1.5 py-0.5 rounded backdrop-blur-sm text-[9px] font-mono font-bold border uppercase ${
@@ -118,7 +120,6 @@ export const AnimeCard = ({ anime, priority = false }) => {
               </span>
             )}
 
-            {/* 2. Distinct Cache Status Badge */}
             {is_cached && (
               <span
                 className="px-1.5 py-0.5 rounded bg-emerald-950/80 backdrop-blur-sm text-[8px] font-mono font-semibold text-emerald-300 border border-emerald-500/40"
@@ -132,19 +133,26 @@ export const AnimeCard = ({ anime, priority = false }) => {
       </div>
 
       {/* Card Info Section with readable title */}
-      <div className="p-4 flex flex-col justify-between flex-1 bg-gradient-to-b from-purple-950/30 to-purple-950/60">
+      <div className="p-3.5 flex flex-col justify-between flex-1 bg-[#101324] border-t border-purple-500/10">
         <div>
           <h4
-            className="text-sm font-semibold text-slate-100 group-hover:text-purple-300 transition-colors line-clamp-2 leading-snug min-h-[40px]"
+            className="text-xs sm:text-sm font-semibold text-slate-100 group-hover:text-purple-300 transition-colors line-clamp-2 leading-snug min-h-[36px]"
             title={displayTitle}
           >
             {displayTitle}
           </h4>
 
           {title_english && title && title_english !== title && (
-            <p className="text-[11px] text-slate-400 truncate mt-1" title={title}>
+            <p className="text-[10px] sm:text-[11px] text-slate-400 truncate mt-0.5" title={title}>
               {title}
             </p>
+          )}
+
+          {anime.personalization_reason && (
+            <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/15 border border-purple-400/25 text-purple-200 text-[10px] font-mono max-w-full">
+              <Sparkles className="w-2.5 h-2.5 text-cyan-400 shrink-0" />
+              <span className="truncate">{anime.personalization_reason}</span>
+            </div>
           )}
         </div>
       </div>

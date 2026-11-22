@@ -20,6 +20,12 @@ import {
   Layers,
   ShieldAlert,
   ChevronRight,
+  MessageSquare,
+  ThumbsUp,
+  AlertTriangle,
+  Eye,
+  EyeOff,
+  MessageCircle,
 } from 'lucide-react'
 import {
   getAnimeDetails,
@@ -29,8 +35,15 @@ import {
   getAnimeTrailers,
   getAnimeFranchise,
 } from '../api/anime'
+import {
+  getAnimeReviews,
+  createAnimeReview,
+  voteReviewHelpful,
+  getCommunityPosts,
+} from '../api/community'
 import { useWatchlist } from '../context/WatchlistContext'
 import AddToListButton from '../components/watchlist/AddToListButton'
+import { isSafeUrl } from '../utils/security'
 import EditRatingNoteModal from '../components/watchlist/EditRatingNoteModal'
 import ConfirmDeleteModal from '../components/watchlist/ConfirmDeleteModal'
 import ErrorState from '../components/common/ErrorState'
@@ -66,6 +79,89 @@ export const AnimeDetailsPage = () => {
   const [ratingModalOpen, setRatingModalOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  // Reviews & Community Discussions State
+  const [reviews, setReviews] = useState([])
+  const [reviewsLoading, setReviewsLoading] = useState(false)
+  const [reviewsSort, setReviewsSort] = useState('recent')
+  const [revealedReviewSpoilers, setRevealedReviewSpoilers] = useState({})
+  const [writeReviewModalOpen, setWriteReviewModalOpen] = useState(false)
+  const [reviewTitle, setReviewTitle] = useState('')
+  const [reviewScore, setReviewScore] = useState(8)
+  const [reviewBody, setReviewBody] = useState('')
+  const [reviewIsSpoiler, setReviewIsSpoiler] = useState(false)
+  const [submittingReview, setSubmittingReview] = useState(false)
+  const [reviewError, setReviewError] = useState(null)
+  const [animeDiscussions, setAnimeDiscussions] = useState([])
+  const [discussionsLoading, setDiscussionsLoading] = useState(false)
+
+  const fetchReviews = async (sort = reviewsSort) => {
+    setReviewsLoading(true)
+    try {
+      const res = await getAnimeReviews(malId, { sort })
+      setReviews(res?.results || [])
+    } catch (err) {
+      setReviews([])
+    } finally {
+      setReviewsLoading(false)
+    }
+  }
+
+  const fetchAnimeDiscussions = async () => {
+    setDiscussionsLoading(true)
+    try {
+      const res = await getCommunityPosts({ anime_id: malId, page_size: 4 })
+      setAnimeDiscussions(res?.results || [])
+    } catch (err) {
+      setAnimeDiscussions([])
+    } finally {
+      setDiscussionsLoading(false)
+    }
+  }
+
+  const handleToggleHelpful = async (reviewId) => {
+    try {
+      const res = await voteReviewHelpful(reviewId)
+      setReviews((prev) =>
+        prev.map((r) =>
+          r.id === reviewId
+            ? { ...r, helpful_count: res.helpful_count, marked_helpful_by_me: res.is_helpful }
+            : r
+        )
+      )
+    } catch (err) {
+      console.error('Failed to vote review helpful:', err)
+    }
+  }
+
+  const handleCreateReview = async (e) => {
+    e.preventDefault()
+    if (!reviewBody.trim() || reviewBody.trim().length < 20) {
+      setReviewError('Review body must be at least 20 characters.')
+      return
+    }
+
+    setSubmittingReview(true)
+    setReviewError(null)
+    try {
+      const created = await createAnimeReview(malId, {
+        title: reviewTitle.trim() || undefined,
+        score: parseInt(reviewScore, 10),
+        body: reviewBody.trim(),
+        is_spoiler: reviewIsSpoiler,
+      })
+      setReviews((prev) => [created, ...prev])
+      setWriteReviewModalOpen(false)
+      setReviewTitle('')
+      setReviewBody('')
+      setReviewScore(8)
+      setReviewIsSpoiler(false)
+    } catch (err) {
+      setReviewError(err.response?.data?.message || err.response?.data?.details?.anime_id || 'Failed to submit review.')
+    } finally {
+      setSubmittingReview(false)
+    }
+  }
 
   const existingEntry = getEntryByMalId(malId)
 
@@ -125,6 +221,8 @@ export const AnimeDetailsPage = () => {
     if (malId) {
       fetchAnimeData()
       fetchEpisodes(1)
+      fetchReviews(reviewsSort)
+      fetchAnimeDiscussions()
       setEpisodePage(1)
       setExpandedEpisode(null)
     }
@@ -262,12 +360,12 @@ export const AnimeDetailsPage = () => {
       )}
 
       {/* Hero Header & Banner */}
-      <div className="relative rounded-3xl bg-[#0c0e1e] border border-purple-500/30 shadow-[0_0_35px_rgba(168,85,247,0.18)] min-h-[420px]">
+      <div className="relative rounded-3xl bg-[#0e101d]/95 border border-purple-500/25 shadow-[0_0_35px_rgba(168,85,247,0.15)] min-h-[420px] backdrop-blur-md">
         {/* Backdrop Banner Image with Gradient */}
         {banner && (
-          <div className="absolute top-0 left-0 right-0 h-64 sm:h-80 overflow-hidden rounded-3xl pointer-events-none opacity-25">
+          <div className="absolute top-0 left-0 right-0 h-64 sm:h-80 overflow-hidden rounded-3xl pointer-events-none opacity-20">
             <img src={banner} alt="" className="w-full h-full object-cover filter blur-sm scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0c0e1e]/80 to-[#0c0e1e]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0e101d]/80 to-[#0e101d]" />
           </div>
         )}
 
@@ -444,7 +542,7 @@ export const AnimeDetailsPage = () => {
                     list.map((opt, i) => (
                       <a
                         key={i}
-                        href={opt.url}
+                        href={isSafeUrl(opt.url) ? opt.url : '#'}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-900/40 hover:bg-purple-800/60 border border-purple-500/30 text-xs text-purple-200 transition-all"
@@ -728,7 +826,7 @@ export const AnimeDetailsPage = () => {
             {trailers.trailers.map((tr, idx) => (
               <a
                 key={idx}
-                href={tr.youtube_url}
+                href={isSafeUrl(tr.youtube_url) ? tr.youtube_url : '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-2xl overflow-hidden bg-[#0c0e1e] border border-purple-500/30 hover:border-purple-400 transition-all group block"
@@ -759,6 +857,272 @@ export const AnimeDetailsPage = () => {
             ))}
           </div>
         </section>
+      )}
+
+      {/* REVIEWS & COMMUNITY DISCUSSIONS SECTION */}
+      <section className="space-y-6 pt-6 border-t border-purple-500/20">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-purple-900/30 border border-purple-500/30 text-purple-300">
+              <MessageSquare className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-white tracking-wide">
+                Community Reviews & Discussions
+              </h2>
+              <p className="text-xs text-slate-400 font-mono">
+                {reviews.length} {reviews.length === 1 ? 'Review' : 'Reviews'} • Community ratings
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link
+              to={`/community?anime_id=${malId}`}
+              className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-purple-950/40 border border-purple-800/40 text-xs font-semibold text-purple-300 hover:text-white transition flex items-center gap-1.5"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              <span>All Discussions ({animeDiscussions.length})</span>
+            </Link>
+            <button
+              onClick={() => {
+                setReviewError(null)
+                setWriteReviewModalOpen(true)
+              }}
+              className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-md shadow-purple-600/30 transition flex items-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Write a Review</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Sort Reviews Dropdown */}
+        {reviews.length > 0 && (
+          <div className="flex items-center justify-between gap-3 text-xs">
+            <span className="text-slate-400">Sort reviews by:</span>
+            <div className="flex items-center gap-1.5">
+              {[
+                { id: 'recent', label: 'Recent' },
+                { id: 'helpful', label: 'Most Helpful' },
+                { id: 'highest_rating', label: 'Highest Score' },
+                { id: 'lowest_rating', label: 'Lowest Score' },
+              ].map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => {
+                    setReviewsSort(s.id)
+                    fetchReviews(s.id)
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                    reviewsSort === s.id
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 border border-purple-900/30'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Reviews List */}
+        {reviewsLoading ? (
+          <div className="py-8 flex justify-center text-purple-400 text-xs">
+            Loading reviews...
+          </div>
+        ) : reviews.length === 0 ? (
+          <div className="p-6 rounded-2xl bg-purple-950/20 border border-purple-500/20 text-center text-xs font-mono text-slate-400 space-y-2">
+            <p>No reviews written for this anime yet.</p>
+            <button
+              onClick={() => setWriteReviewModalOpen(true)}
+              className="text-purple-400 hover:text-purple-300 font-bold underline"
+            >
+              Be the first to share your review!
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {reviews.map((rev) => {
+              const isSpoilerHidden = rev.is_spoiler && !revealedReviewSpoilers[rev.id]
+
+              return (
+                <div
+                  key={rev.id}
+                  className="p-4 rounded-2xl bg-[#0c0e1e]/80 border border-purple-900/40 space-y-2.5 shadow-md"
+                >
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-slate-200">
+                        {rev.author?.display_name || 'Anonymous User'}
+                      </span>
+                      <span className="text-slate-500">•</span>
+                      <span className="text-slate-500">
+                        {new Date(rev.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-purple-900/40 border border-purple-500/40 text-purple-300 font-bold text-xs">
+                      <Star className="w-3 h-3 fill-purple-400 text-purple-400" />
+                      <span>{rev.score}/10</span>
+                    </div>
+                  </div>
+
+                  {rev.title && (
+                    <h4 className="font-bold text-sm text-white">{rev.title}</h4>
+                  )}
+
+                  {isSpoilerHidden ? (
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-950/20 border border-amber-900/40 text-xs">
+                      <span className="text-amber-300 font-medium flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                        This review contains spoilers.
+                      </span>
+                      <button
+                        onClick={() =>
+                          setRevealedReviewSpoilers((prev) => ({
+                            ...prev,
+                            [rev.id]: true,
+                          }))
+                        }
+                        className="text-amber-400 hover:underline font-semibold"
+                      >
+                        Reveal
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-line">
+                      {rev.body}
+                    </p>
+                  )}
+
+                  <div className="flex items-center justify-between pt-1 border-t border-purple-950 text-xs text-slate-500">
+                    <button
+                      onClick={() => handleToggleHelpful(rev.id)}
+                      className={`flex items-center gap-1.5 transition ${
+                        rev.marked_helpful_by_me ? 'text-purple-400 font-bold' : 'hover:text-purple-300'
+                      }`}
+                    >
+                      <ThumbsUp className={`w-3.5 h-3.5 ${rev.marked_helpful_by_me ? 'fill-current' : ''}`} />
+                      <span>Helpful ({rev.helpful_count})</span>
+                    </button>
+                    {rev.is_spoiler && !isSpoilerHidden && (
+                      <span className="text-[10px] text-amber-400/80 font-mono">Contains spoilers</span>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* WRITE REVIEW MODAL */}
+      {writeReviewModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-lg rounded-2xl bg-[#0c0c17] border border-purple-700/40 p-6 shadow-2xl shadow-purple-950/60 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setWriteReviewModalOpen(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
+              <Star className="w-4 h-4 text-purple-400 fill-purple-400" />
+              <span>Review {details.title}</span>
+            </h3>
+            <p className="text-xs text-slate-400 mb-4 font-mono">
+              Your honest assessment helps other fans decide what to watch.
+            </p>
+
+            {reviewError && (
+              <div className="mb-4 p-3 rounded-xl bg-red-950/40 border border-red-800/40 text-xs text-red-300">
+                {reviewError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateReview} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Rating: <span className="text-purple-400 font-bold text-sm">{reviewScore}/10</span>
+                </label>
+                <input
+                  type="range"
+                  min="1"
+                  max="10"
+                  step="1"
+                  value={reviewScore}
+                  onChange={(e) => setReviewScore(e.target.value)}
+                  className="w-full accent-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Review Headline / Title (Optional)
+                </label>
+                <input
+                  type="text"
+                  maxLength={150}
+                  value={reviewTitle}
+                  onChange={(e) => setReviewTitle(e.target.value)}
+                  placeholder="e.g. Masterpiece with unforgettable characters"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-purple-900/40 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Review Body * (20 - 2000 chars)
+                </label>
+                <textarea
+                  rows={4}
+                  minLength={20}
+                  maxLength={2000}
+                  value={reviewBody}
+                  onChange={(e) => setReviewBody(e.target.value)}
+                  placeholder="What makes this anime stand out? Story, animation, music, pacing..."
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-purple-900/40 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-purple-500 resize-none"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  {reviewBody.length}/2000 characters (min. 20)
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-950 border border-purple-900/30 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <AlertTriangle className="w-4 h-4 text-amber-400" />
+                  <span>Review contains major plot spoilers</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={reviewIsSpoiler}
+                  onChange={(e) => setReviewIsSpoiler(e.target.checked)}
+                  className="w-4 h-4 rounded border-purple-900 text-purple-600 focus:ring-0 bg-slate-900"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setWriteReviewModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingReview}
+                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs shadow-md shadow-purple-600/30 transition disabled:opacity-50"
+                >
+                  {submittingReview ? 'Submitting...' : 'Post Review'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Edit Rating & Note Modal */}

@@ -77,6 +77,7 @@ class TrackingService:
                 ]
                 EpisodeProgress.objects.bulk_create(bulk_episodes)
 
+        self._invalidate_user_caches(user)
         return entry
 
     def update_progress(self, user, entry_id, watched_episodes):
@@ -133,6 +134,7 @@ class TrackingService:
             if missing_eps:
                 EpisodeProgress.objects.bulk_create(missing_eps)
 
+        self._invalidate_user_caches(user)
         return entry
 
     def mark_completed(self, user, entry_id):
@@ -163,6 +165,7 @@ class TrackingService:
             else:
                 entry.save()
 
+        self._invalidate_user_caches(user)
         return entry
 
     def update_entry(self, user, entry_id, status=None, rating=None, note=None):
@@ -199,6 +202,7 @@ class TrackingService:
 
             entry.save()
 
+        self._invalidate_user_caches(user)
         return entry
 
     def remove_from_watchlist(self, user, entry_id):
@@ -208,7 +212,17 @@ class TrackingService:
         """
         entry = self.get_user_entry(user, entry_id)
         entry.delete()
+        self._invalidate_user_caches(user)
         return True
+
+    def _invalidate_user_caches(self, user):
+        from django.core.cache import cache
+        user_id = getattr(user, 'id', None)
+        if user_id:
+            for mode in ['personalized', 'different']:
+                for limit in [4, 6, 8, 10]:
+                    for genre in ['all', '']:
+                        cache.delete(f"ryuk_recs_u{user_id}_{genre}_{mode}_{limit}")
 
     @staticmethod
     def serialize_entry(entry):

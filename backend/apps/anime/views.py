@@ -114,10 +114,22 @@ class AnimeTrendingView(APIView):
             }
         })
 
+class DiscoveryFiltersView(APIView):
+    """
+    GET /api/anime/discovery/filters/
+    Returns discovery filter choices including verified audio languages,
+    supported genres, formats, airing statuses, and sort modes.
+    """
+    def get(self, request):
+        from apps.anime.discovery_service import DiscoveryService
+        filters_data = DiscoveryService.get_available_filters()
+        return Response(filters_data, status=status.HTTP_200_OK)
+
 class AnimeBrowseView(APIView):
     """
     SRS GET /api/anime/browse/
-    Filter results by genre, min_score, type, status.
+    Advanced anime discovery with multi-genre, format, score range,
+    year range, verified audio language, and status filtering.
     """
     def get(self, request):
         serializer = AnimeBrowseQuerySerializer(data=request.query_params)
@@ -127,38 +139,9 @@ class AnimeBrowseView(APIView):
                 details=serializer.errors
             )
 
-        validated = serializer.validated_data
-        page = validated.get('page', 1)
-
-        # Block explicit adult genres from browse
-        genre = validated.get('genre')
-        if genre and str(genre).lower().strip() in ('12', '49', 'hentai', 'erotica'):
-            return Response({'results': [], 'pagination': {'page': page, 'total_pages': 1, 'total': 0}})
-
-        client = JikanClient()
-        res = client.browse_anime(
-            genre=validated.get('genre'),
-            min_score=validated.get('min_score'),
-            anime_type=validated.get('type'),
-            status=validated.get('status'),
-            page=page
-        )
-        if not res or 'data' not in res:
-            return Response({'results': [], 'pagination': {'page': page, 'total_pages': 1, 'total': 0}})
-
-        results = [client.normalize_poster_card(item) for item in res['data'] if not is_excluded_adult_anime(item)]
-        results = filter_anime_list(results)
-        from apps.anime.franchise_service import FranchiseService
-        results = FranchiseService.group_results(results)
-        pagination = res.get('pagination', {})
-        return Response({
-            'results': results,
-            'pagination': {
-                'page': page,
-                'total_pages': pagination.get('last_visible_page', 1),
-                'total': pagination.get('items', {}).get('total', len(results))
-            }
-        })
+        from apps.anime.discovery_service import DiscoveryService
+        data = DiscoveryService.browse(serializer.validated_data, user=request.animeverse_user)
+        return Response(data, status=status.HTTP_200_OK)
 
 class AnimeDetailView(APIView):
     """
@@ -288,14 +271,41 @@ class AnimeReviewsView(APIView):
     """
     SRS GET /api/anime/{mal_id}/reviews/
     SRS POST /api/anime/{mal_id}/reviews/
+    Supports sorting by recent, helpful, highest_rating, lowest_rating.
+    Includes spoiler flags and helpful feedback counts.
     """
     def get(self, request, mal_id):
         if check_anime_id_is_excluded(mal_id):
             return Response({'results': [], 'error': BLOCKED_ANIME_MESSAGE, 'is_blocked': True}, status=status.HTTP_404_NOT_FOUND)
 
-        reviews_qs = Review.objects.filter(anime_id=mal_id).select_related('user').order_by('-created_at')
+        from apps.community.models import Review, ReviewHelpful
+
+        user = getattr(request, 'animeverse_user', None)
+        is_mod = getattr(user, 'is_moderator', False) if user else False
+
+        reviews_qs = Review.objects.filter(anime_id=mal_id).select_related('user')
+        if not is_mod:
+            reviews_qs = reviews_qs.filter(is_hidden=False)
+
+        sort_param = request.query_params.get('sort', 'recent').lower()
+        if sort_param == 'helpful':
+            reviews_qs = reviews_qs.order_by('-helpful_count', '-created_at')
+        elif sort_param == 'highest_rating':
+            reviews_qs = reviews_qs.order_by('-score', '-created_at')
+        elif sort_param == 'lowest_rating':
+            reviews_qs = reviews_qs.order_by('score', '-created_at')
+        else:  # 'recent'
+            reviews_qs = reviews_qs.order_by('-created_at')
+
         paginator = AnimeversePagination()
         page_slice = paginator.paginate_queryset(reviews_qs, request)
+
+        page_review_ids = [r.id for r in page_slice]
+        helpful_review_ids = set()
+        if user and page_review_ids:
+            helpful_review_ids = set(
+                ReviewHelpful.objects.filter(review_id__in=page_review_ids, user=user).values_list('review_id', flat=True)
+            )
 
         serialized = [
             {
@@ -305,8 +315,12 @@ class AnimeReviewsView(APIView):
                     'id': r.user.id,
                     'display_name': r.user.display_name,
                 },
+                'title': r.title or '',
                 'score': r.score,
                 'body': r.body,
+                'is_spoiler': r.is_spoiler,
+                'helpful_count': r.helpful_count,
+                'marked_helpful_by_me': r.id in helpful_review_ids,
                 'created_at': r.created_at.isoformat(),
             }
             for r in page_slice
@@ -353,8 +367,10 @@ class AnimeReviewsView(APIView):
         review = Review.objects.create(
             user=user,
             anime=anime,
+            title=serializer.validated_data.get('title', ''),
             score=serializer.validated_data['score'],
-            body=serializer.validated_data['body']
+            body=serializer.validated_data['body'],
+            is_spoiler=serializer.validated_data.get('is_spoiler', False),
         )
 
         return Response({
@@ -364,8 +380,12 @@ class AnimeReviewsView(APIView):
                 'id': user.id,
                 'display_name': user.display_name,
             },
+            'title': review.title,
             'score': review.score,
             'body': review.body,
+            'is_spoiler': review.is_spoiler,
+            'helpful_count': 0,
+            'marked_helpful_by_me': False,
             'created_at': review.created_at.isoformat()
         }, status=status.HTTP_201_CREATED)
 

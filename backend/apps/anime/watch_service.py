@@ -513,17 +513,26 @@ class WatchService:
         self.seed_verified_language_tracks()
 
         # 1. Fetch anime details to confirm exact anime title and format
-        details_res = self.jikan_client.get_anime_details(mal_id)
+        try:
+            details_res = self.jikan_client.get_anime_details(mal_id)
+        except Exception:
+            details_res = None
+
         if not details_res or not details_res.get("data"):
-            anime_title = f"Anime #{mal_id}"
-            anime_type = "TV"
+            from apps.anime.models import Anime
+            local_anime = Anime.objects.filter(mal_id=mal_id).first()
+            anime_title = local_anime.title if local_anime else f"Anime #{mal_id}"
+            anime_type = getattr(local_anime, 'anime_type', 'TV') or "TV"
         else:
             d = details_res["data"]
             anime_title = d.get("title_english") or d.get("title") or f"Anime #{mal_id}"
             anime_type = d.get("type") or "TV"
 
         # 2. Fetch raw streaming records from Tenrai primary catalog
-        streaming_res = self.jikan_client.get_anime_streaming(mal_id)
+        try:
+            streaming_res = self.jikan_client.get_anime_streaming(mal_id)
+        except Exception:
+            streaming_res = None
         raw_streaming = streaming_res.get("data", []) if streaming_res else []
 
         all_countries = set()

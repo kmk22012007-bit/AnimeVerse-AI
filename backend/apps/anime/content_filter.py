@@ -43,7 +43,10 @@ def is_excluded_adult_anime(item) -> bool:
         mal_id = getattr(item, 'mal_id', None)
         if mal_id:
             from apps.anime.models import JikanCache
-            cached = JikanCache.objects.filter(cache_key=f"details_{mal_id}").first()
+            cached = (
+                JikanCache.objects.filter(cache_key=f"details_{mal_id}").first()
+                or JikanCache.objects.filter(cache_key=f"anime:{mal_id}:full").first()
+            )
             if cached and isinstance(cached.payload, dict):
                 data = cached.payload.get('data') or cached.payload
                 return is_excluded_adult_anime(data)

@@ -1,0 +1,71 @@
+name: Bug Report
+description: Create a report to help us improve AnimeVerse AI
+title: "[BUG]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please fill out the form below to help us isolate and resolve the issue quickly.
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe what happened...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the behavior.
+      placeholder: |
+        1. Navigate to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen.
+      placeholder: What should have happened instead?
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      options:
+        - Frontend - Discover Page
+        - Frontend - Anime Details
+        - Frontend - Watchlist & Progress
+        - Frontend - Community & Polls
+        - Frontend - RYUK AI Assistant
+        - Frontend - Analytics Dashboard
+        - Frontend - Notifications
+        - Backend - REST API
+        - Backend - Session Auth & Middleware
+        - Backend - Content Safety Filter
+        - Upstream Metadata (Jikan / AniList)
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment & Browser
+      description: Browser version, operating system, and screen resolution.
+      placeholder: e.g. Chrome 124, Windows 11, 1920x1080
+    validations:
+      required: false
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or Console Logs
+      description: Paste any error messages, terminal logs, or screenshot links.
+      placeholder: Paste logs or drag & drop screenshots here...
+    validations:
+      required: false

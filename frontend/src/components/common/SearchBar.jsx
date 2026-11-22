@@ -21,7 +21,9 @@ export const SearchBar = ({
   const [liveResults, setLiveResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState(-1)
   const containerRef = useRef(null)
+  const inputRef = useRef(null)
   const debounceTimerRef = useRef(null)
 
   useEffect(() => {
@@ -39,11 +41,29 @@ export const SearchBar = ({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Global '/' keyboard shortcut to focus search bar
+  useEffect(() => {
+    const handleGlobalSlash = (e) => {
+      if (
+        e.key === '/' &&
+        document.activeElement?.tagName !== 'INPUT' &&
+        document.activeElement?.tagName !== 'TEXTAREA' &&
+        !document.activeElement?.isContentEditable
+      ) {
+        e.preventDefault()
+        inputRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handleGlobalSlash)
+    return () => window.removeEventListener('keydown', handleGlobalSlash)
+  }, [])
+
   const fetchLiveSuggestions = async (searchTerm) => {
     const trimmed = searchTerm.trim()
     if (trimmed.length < 2) {
       setLiveResults([])
       setIsOpen(false)
+      setSelectedIndex(-1)
       setLoading(false)
       return
     }
@@ -52,6 +72,7 @@ export const SearchBar = ({
     if (searchCache.has(cacheKey)) {
       setLiveResults(searchCache.get(cacheKey))
       setIsOpen(true)
+      setSelectedIndex(-1)
       setLoading(false)
       return
     }
@@ -60,11 +81,11 @@ export const SearchBar = ({
     try {
       const res = await searchAnime(trimmed, 1)
       const results = res?.results || []
-      // Cache top 8 suggestions
       const sliced = results.slice(0, 8)
       searchCache.set(cacheKey, sliced)
       setLiveResults(sliced)
       setIsOpen(true)
+      setSelectedIndex(-1)
     } catch (err) {
       setLiveResults([])
     } finally {
@@ -85,16 +106,35 @@ export const SearchBar = ({
         setLoading(true)
         debounceTimerRef.current = setTimeout(() => {
           fetchLiveSuggestions(val)
-        }, 250)
+        }, 220)
       } else {
         setLiveResults([])
         setIsOpen(false)
+        setSelectedIndex(-1)
         setLoading(false)
       }
     }
   }
 
   const handleKeyDown = (e) => {
+    if (isOpen && liveResults.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelectedIndex((prev) => (prev < liveResults.length - 1 ? prev + 1 : 0))
+        return
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : liveResults.length - 1))
+        return
+      }
+      if (e.key === 'Enter' && selectedIndex >= 0 && selectedIndex < liveResults.length) {
+        e.preventDefault()
+        handleItemClick(liveResults[selectedIndex])
+        return
+      }
+    }
+
     if (e.key === 'Enter') {
       setIsOpen(false)
       if (onSearch) {
@@ -104,6 +144,7 @@ export const SearchBar = ({
       }
     } else if (e.key === 'Escape') {
       setIsOpen(false)
+      setSelectedIndex(-1)
     }
   }
 
@@ -142,7 +183,13 @@ export const SearchBar = ({
       </div>
 
       <input
+        ref={inputRef}
         type="text"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={isOpen}
+        aria-controls="search-suggestions-list"
+        aria-label="Search anime titles"
         value={internalValue}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
@@ -169,7 +216,11 @@ export const SearchBar = ({
 
       {/* Floating Live Quick Search Dropdown */}
       {liveSearch && isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-[#0c0e1e]/95 backdrop-blur-xl border border-purple-500/40 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.8)] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+        <div
+          id="search-suggestions-list"
+          role="listbox"
+          className="absolute top-full left-0 right-0 mt-2 z-50 bg-[#0c0e1e]/95 backdrop-blur-xl border border-purple-500/40 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.8)] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150"
+        >
           <div className="p-2 border-b border-purple-500/20 flex items-center justify-between text-[11px] font-mono text-purple-300 px-3">
             <span>QUICK SEARCH RESULTS</span>
             <span className="text-slate-400">{liveResults.length} found</span>
@@ -181,12 +232,18 @@ export const SearchBar = ({
                 {loading ? 'Searching anime registry...' : `No anime found matching "${internalValue}"`}
               </div>
             ) : (
-              liveResults.map((item) => (
+              liveResults.map((item, idx) => (
                 <button
                   key={item.mal_id}
                   onClick={() => handleItemClick(item)}
+                  role="option"
+                  aria-selected={selectedIndex === idx}
                   type="button"
-                  className="w-full p-2.5 flex items-center gap-3 text-left hover:bg-purple-900/30 transition-colors group cursor-pointer"
+                  className={`w-full p-2.5 flex items-center gap-3 text-left transition-colors group cursor-pointer ${
+                    selectedIndex === idx
+                      ? 'bg-purple-600/30 text-purple-200 border-l-2 border-purple-400'
+                      : 'hover:bg-purple-900/30'
+                  }`}
                 >
                   {/* Poster Thumbnail */}
                   <div className="w-10 h-14 rounded-lg bg-purple-950/80 overflow-hidden flex-shrink-0 border border-purple-500/20">

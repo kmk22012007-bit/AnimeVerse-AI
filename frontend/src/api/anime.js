@@ -31,6 +31,14 @@ export const browseAnime = async (filters = {}) => {
 }
 
 /**
+ * GET /api/anime/discovery/filters/
+ * Retrieves available discovery filter options and verified audio languages.
+ */
+export const getDiscoveryFilters = async () => {
+  return await apiClient.get('/anime/discovery/filters/')
+}
+
+/**
  * SRS GET /api/anime/{mal_id}/
  * Full anime details with characters, synopsis, genres, and metadata source.
  */

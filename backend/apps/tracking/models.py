@@ -34,6 +34,11 @@ class UserAnimeList(models.Model):
                 name='check_rating_1_to_10'
             ),
         ]
+        indexes = [
+            models.Index(fields=['user', 'status'], name='user_anime_status_idx'),
+            models.Index(fields=['user', '-updated_at'], name='user_anime_updated_idx'),
+            models.Index(fields=['anime', 'status'], name='anime_status_idx'),
+        ]
         ordering = ['-updated_at']
 
     def __str__(self):

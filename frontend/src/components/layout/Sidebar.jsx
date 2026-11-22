@@ -12,12 +12,14 @@ import {
   X,
   Radio,
   Zap,
+  BarChart3,
 } from 'lucide-react'
 
 const navItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
   { name: 'Discover', path: '/discover', icon: Compass },
   { name: 'My List', path: '/list', icon: BookmarkCheck },
+  { name: 'Analytics', path: '/analytics', icon: BarChart3 },
   { name: 'Watch Anywhere', path: '/watch', icon: Tv, badge: 'NEW' },
   { name: 'RYUK AI Assistant', path: '/ryuk', icon: Bot, badge: 'AI' },
   { name: 'Community', path: '/community', icon: MessageSquare },
@@ -70,7 +72,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
           </div>
 
           {/* Navigation Links */}
-          <nav className="p-3 space-y-1.5 mt-2">
+          <nav className="p-3 space-y-1.5 mt-2" aria-label="Main navigation">
             {navItems.map((item) => {
               const Icon = item.icon
               return (
@@ -79,28 +81,38 @@ export const Sidebar = ({ isOpen, onClose }) => {
                   to={item.path}
                   onClick={onClose}
                   className={({ isActive }) =>
-                    `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    `relative flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 min-h-[44px] ${
                       isActive
                         ? 'bg-purple-600/20 text-purple-200 border border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.2)] font-semibold'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-purple-950/30 hover:border hover:border-purple-500/20'
                     }`
                   }
                 >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4" />
-                    <span>{item.name}</span>
-                  </div>
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-gradient-to-b from-purple-400 to-cyan-400 rounded-r-full shadow-[0_0_8px_rgba(168,85,247,0.8)]"
+                        />
+                      )}
+                      <div className="flex items-center gap-3">
+                        <Icon className={`w-4 h-4 ${isActive ? 'text-purple-300' : 'text-slate-400'}`} />
+                        <span>{item.name}</span>
+                      </div>
 
-                  {item.badge && (
-                    <span
-                      className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                        item.badge === 'AI'
-                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                          : 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
+                      {item.badge && (
+                        <span
+                          className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                            item.badge === 'AI'
+                              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                              : 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </>
                   )}
                 </NavLink>
               )
@@ -122,6 +134,12 @@ export const Sidebar = ({ isOpen, onClose }) => {
           <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
             <span>Uplink: Live Upstream</span>
             <span className="text-purple-400">Tenrai / AniList</span>
+          </div>
+          <div className="mt-2 pt-2 border-t border-purple-500/15 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+            <span>Quick search</span>
+            <kbd className="px-1.5 py-0.5 rounded bg-purple-950/80 border border-purple-500/30 text-purple-300 font-mono text-[9px]">
+              /
+            </kbd>
           </div>
         </div>
       </aside>

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { searchAnime, getWatchOptions, getAnimeTrailers, getAnimeDetails } from '../api/anime'
 import ProviderLogo from '../components/ProviderLogo'
+import { isSafeUrl } from '../utils/security'
 
 const QUICK_TITLES = [
   { name: 'Sousou no Frieren', id: 52991 },
@@ -388,7 +389,7 @@ export const WatchAnywherePage = () => {
                                 {opt.price ? `${opt.price} ${opt.currency || ''}` : 'Official Stream'}
                               </span>
                               <a
-                                href={opt.url}
+                                href={isSafeUrl(opt.url) ? opt.url : '#'}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-purple-600/80 hover:bg-purple-500 text-white font-semibold text-[11px] transition-all cursor-pointer"
@@ -423,7 +424,7 @@ export const WatchAnywherePage = () => {
                   {trailersData.trailers.map((tr, idx) => (
                     <a
                       key={idx}
-                      href={tr.youtube_url}
+                      href={isSafeUrl(tr.youtube_url) ? tr.youtube_url : '#'}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="rounded-2xl overflow-hidden bg-[#0c0e1e] border border-purple-500/30 hover:border-purple-400 transition-all group block"

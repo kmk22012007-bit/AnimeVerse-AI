@@ -11,6 +11,9 @@ import {
   History,
   ImageOff,
   Compass,
+  Clock,
+  Award,
+  Zap,
 } from 'lucide-react'
 import { getDashboardData } from '../api/dashboard'
 import { getAnimeDetails, browseAnime } from '../api/anime'
@@ -113,8 +116,16 @@ export const DashboardPage = () => {
 
   const welcome = data?.welcome || {}
   const stats = data?.stats || data?.statistics || {}
-  const watching = data?.watching || data?.currently_watching || []
+  const watching = data?.continue_watching || data?.watching || data?.currently_watching || []
   const recent = data?.recent || data?.recently_updated || []
+  const recentlyCompleted = data?.recently_completed || []
+  const becauseYouWatched = data?.because_you_watched || null
+  const recommendedForYou =
+    data?.recommended_for_you && data.recommended_for_you.length > 0
+      ? data.recommended_for_you
+      : recommended
+  const exploreNewGenres = data?.explore_new_genres || []
+  const journey = data?.your_anime_journey || null
 
   // Resolve hero backdrop: prefer banner_url, fallback to poster_url, fallback to null
   const heroBackdrop =
@@ -289,12 +300,76 @@ export const DashboardPage = () => {
         </div>
       </section>
 
-      {/* 3. Currently Watching Section */}
+      {/* 2.5 Your Anime Journey (Personalized Stats & Velocity) */}
+      {journey && (
+        <section aria-labelledby="journey-heading" className="p-5 sm:p-6 rounded-3xl bg-[#0e101d]/90 border border-purple-500/25 shadow-[0_0_25px_rgba(168,85,247,0.12)] backdrop-blur-md">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 pb-3 border-b border-purple-500/20">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300">
+                <Sparkles className="w-4 h-4 text-cyan-400" />
+              </div>
+              <div>
+                <h3 id="journey-heading" className="text-sm font-bold text-white flex items-center gap-2">
+                  Your Anime Journey
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-400/30">
+                    Live Signals
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400">Dynamic viewing velocity and taste indicators</p>
+              </div>
+            </div>
+            <Link
+              to="/profile"
+              className="text-xs font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+            >
+              <span>Taste Profile & Preferences</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
+            <div className="p-3.5 rounded-2xl bg-[#131627]/80 border border-purple-500/20">
+              <span className="text-[10px] text-slate-400 block mb-1">Time Invested</span>
+              <div className="text-xl font-black text-cyan-300 flex items-baseline gap-1">
+                <span>{journey.estimated_hours_watched || 0}</span>
+                <span className="text-xs font-normal text-slate-400">hours</span>
+              </div>
+              <span className="text-[10px] text-slate-500">~24 mins/ep calculation</span>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-[#131627]/80 border border-purple-500/20">
+              <span className="text-[10px] text-slate-400 block mb-1">Completion Rate</span>
+              <div className="text-xl font-black text-emerald-400 flex items-baseline gap-1">
+                <span>{journey.completion_rate_pct || 0}%</span>
+              </div>
+              <span className="text-[10px] text-emerald-300/70">Finished vs total tracked</span>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-[#131627]/80 border border-purple-500/20">
+              <span className="text-[10px] text-slate-400 block mb-1">Top Genre Affinity</span>
+              <div className="text-base font-bold text-purple-200 truncate mt-0.5">
+                {journey.top_genre || 'Eclectic Explorer'}
+              </div>
+              <span className="text-[10px] text-purple-400">Primary viewing focus</span>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-[#131627]/80 border border-purple-500/20">
+              <span className="text-[10px] text-slate-400 block mb-1">Episodes Tracked</span>
+              <div className="text-xl font-black text-amber-400">
+                {journey.episodes_watched || 0}
+              </div>
+              <span className="text-[10px] text-amber-300/70">Across active watchlists</span>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 3. Continue Watching Section */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></span>
-            Currently Watching
+            Continue Watching
           </h2>
           {watching.length > 0 && (
             <Link
@@ -334,7 +409,89 @@ export const DashboardPage = () => {
         )}
       </section>
 
-      {/* 4. Real Trending Anime Strip */}
+      {/* 4. Because You Watched Carousel */}
+      {becauseYouWatched?.seed_anime && becauseYouWatched?.recommendations?.length > 0 && (
+        <section>
+          <AnimeCarousel
+            items={becauseYouWatched.recommendations}
+            title={`Because You Watched: ${becauseYouWatched.seed_anime.title}`}
+            subtitle="Personalized recommendations grounded in your highest rated completed anime"
+          />
+        </section>
+      )}
+
+      {/* 5. Recommended For You (Personalized Engine) */}
+      {recommendedForYou.length > 0 && (
+        <section>
+          <AnimeCarousel
+            items={recommendedForYou}
+            title="Recommended For You"
+            subtitle="Personalized recommendations tailored to your taste profile & watch activity"
+          />
+        </section>
+      )}
+
+      {/* 6. Explore New Horizons (Genre Diversity) */}
+      {exploreNewGenres.length > 0 && (
+        <section>
+          <AnimeCarousel
+            items={exploreNewGenres}
+            title="Explore New Horizons"
+            subtitle="Top-rated anime outside your usual genres to diversify your taste"
+          />
+        </section>
+      )}
+
+      {/* 7. Recently Completed Anime */}
+      {recentlyCompleted.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              Recently Completed
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+            {recentlyCompleted.map((item) => (
+              <Link
+                key={item.mal_id}
+                to={`/anime/${item.mal_id}`}
+                className="group relative flex flex-col rounded-2xl overflow-hidden bg-purple-950/25 border border-purple-500/20 hover:border-purple-400/60 transition-all duration-300 hover:shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:-translate-y-1"
+              >
+                <div className="relative aspect-[3/4] bg-purple-950/50 overflow-hidden">
+                  {item.poster_url ? (
+                    <img
+                      src={item.poster_url}
+                      alt={item.title}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-purple-400 font-mono text-xs">
+                      ANIME
+                    </div>
+                  )}
+                  {item.rating && (
+                    <div className="absolute top-2 right-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/80 backdrop-blur-md border border-amber-400/40 text-amber-300 text-xs font-bold">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      <span>{item.rating}/10</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-3 bg-gradient-to-b from-purple-950/30 to-purple-950/60">
+                  <h4 className="text-xs font-bold text-white truncate group-hover:text-purple-300">
+                    {item.title}
+                  </h4>
+                  <span className="text-[10px] font-mono text-emerald-400 mt-0.5 block">
+                    ✓ Completed
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 8. Trending Across AnimeVerse */}
       <section>
         <AnimeCarousel
           items={trending}
@@ -343,18 +500,7 @@ export const DashboardPage = () => {
         />
       </section>
 
-      {/* 5. Recommended TV Classics (from real API browse data) */}
-      {recommended.length > 0 && (
-        <section>
-          <AnimeCarousel
-            items={recommended}
-            title="Recommended Television Classics"
-            subtitle="Top-rated legendary anime series from verified database records"
-          />
-        </section>
-      )}
-
-      {/* 6. Recently Updated Items (if user has watch history) */}
+      {/* 9. Recently Updated in List */}
       {recent.length > 0 && (
         <section className="space-y-4">
           <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">

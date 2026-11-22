@@ -25,7 +25,7 @@ export const ProgressCard = ({ entry }) => {
   const progressPercent = total > 0 ? Math.min(100, Math.round((watched / total) * 100)) : 0
 
   return (
-    <div className="flex gap-4 p-4 rounded-2xl bg-purple-950/25 border border-purple-500/20 hover:border-purple-400/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(168,85,247,0.2)]">
+    <div className="flex gap-4 p-4 rounded-2xl bg-[#0e101d]/90 border border-purple-500/20 hover:border-purple-400/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(168,85,247,0.18)] backdrop-blur-md">
       {/* Anime Poster Thumbnail */}
       <Link to={`/anime/${mal_id}`} className="relative w-20 h-28 rounded-xl overflow-hidden bg-purple-950/50 flex-shrink-0 group">
         {poster_url ? (
@@ -79,32 +79,39 @@ export const ProgressCard = ({ entry }) => {
               Ep {watched} <span className="text-slate-500">/</span> {total > 0 ? total : '??'}
             </span>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={() => decrementEpisode(entry)}
                 disabled={watched <= 0}
                 type="button"
-                aria-label="Decrease episode progress"
-                className="w-5 h-5 rounded bg-purple-950/60 hover:bg-purple-900 border border-purple-500/30 text-purple-300 flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                aria-label={`Decrease episode for ${title}`}
+                className="w-7 h-7 sm:w-6 sm:h-6 rounded-lg bg-purple-950/60 hover:bg-purple-900 border border-purple-500/30 text-purple-300 flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none cursor-pointer transition-colors"
                 title="-1 Ep"
               >
-                <Minus className="w-3 h-3" />
+                <Minus className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => incrementEpisode(entry)}
                 disabled={total > 0 && watched >= total}
                 type="button"
-                aria-label="Increase episode progress"
-                className="w-5 h-5 rounded bg-purple-600 hover:bg-purple-500 text-white flex items-center justify-center shadow-sm disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                aria-label={`Increase episode for ${title}`}
+                className="w-7 h-7 sm:w-6 sm:h-6 rounded-lg bg-purple-600 hover:bg-purple-500 text-white flex items-center justify-center shadow-sm disabled:opacity-30 disabled:pointer-events-none cursor-pointer transition-colors"
                 title="+1 Ep"
               >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-3.5 h-3.5" />
               </button>
               <span className="text-[11px] font-mono text-slate-400 ml-1.5">{progressPercent}%</span>
             </div>
           </div>
 
-          <div className="w-full h-2 rounded-full bg-purple-950/60 overflow-hidden border border-purple-500/20">
+          <div
+            role="progressbar"
+            aria-valuenow={progressPercent}
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-label={`Watch progress: ${progressPercent}%`}
+            className="w-full h-2 rounded-full bg-purple-950/60 overflow-hidden border border-purple-500/20"
+          >
             <div
               className="h-full rounded-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-cyan-400 transition-all duration-300 shadow-[0_0_8px_rgba(168,85,247,0.7)]"
               style={{ width: `${progressPercent}%` }}

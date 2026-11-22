@@ -3,6 +3,7 @@ from apps.anime.views import (
     AnimeSearchView,
     AnimeTrendingView,
     AnimeBrowseView,
+    DiscoveryFiltersView,
     AnimeDetailView,
     AnimeEpisodesView,
     AnimeRelatedView,
@@ -17,6 +18,7 @@ from apps.anime.views import (
 urlpatterns = [
     path('search/', AnimeSearchView.as_view(), name='anime-search'),
     path('trending/', AnimeTrendingView.as_view(), name='anime-trending'),
+    path('discovery/filters/', DiscoveryFiltersView.as_view(), name='discovery-filters'),
     path('browse/', AnimeBrowseView.as_view(), name='anime-browse'),
     path('watchmode-status/', WatchmodeStatusView.as_view(), name='watchmode-status'),
     path('franchises/<str:id_or_slug>/', FranchiseDetailView.as_view(), name='franchise-detail'),

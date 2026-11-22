@@ -1,16 +1,51 @@
-# Python
+# Python & Virtual Environments
 __pycache__/
 *.py[cod]
 *$py.class
+*.bak
+.pytest_cache/
+.coverage
+htmlcov/
+venv/
+.venv/
+env/
+
+# Databases & Backups (Preserve data locally, never commit to git)
 *.sqlite3
 db.sqlite3
-.pytest_cache/
+backend/db.sqlite3
+backend/backups/
+backups/
+
+# Static & Media Production Artifacts
+backend/staticfiles/
+staticfiles/
+backend/media/
+media/
+
+# Environment Variables & Secrets
 .env
 .env.*
 backend/.env
 *.env
+!*.env.example
+!.env.production.example
 
-# Node
+# Node & Frontend Build
 node_modules/
 dist/
+scratch/
 .DS_Store
+
+# Repository Publication Cleanliness
+*.db
+/screenshots/
+backend/scripts/
+PHASE_*.md
+FINAL_QA_REPORT.md
+FINAL_PROJECT_AUDIT.md
+
+backend/scripts/
+PHASE_*.md
+FINAL_QA_REPORT.md
+FINAL_PROJECT_AUDIT.md

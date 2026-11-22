@@ -1,8 +1,12 @@
+import logging
 from rest_framework.views import exception_handler
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import APIException, ValidationError as DRFValidationError, NotFound, PermissionDenied
 from django.http import Http404
+from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 class AnimeverseAPIException(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
@@ -122,9 +126,11 @@ def custom_exception_handler(exc, context):
         }
         return response
 
-    # Fallback for unexpected unhandled exceptions
+    # Fallback for unexpected unhandled exceptions (secure sanitization)
+    logger.exception("Unhandled server exception: %s", exc)
+    msg = str(exc) if (getattr(settings, 'DEBUG', False) and exc) else "An unexpected internal server error occurred."
     return Response({
         "error": "server_error",
-        "message": str(exc) if exc else "An unexpected internal server error occurred.",
+        "message": msg,
         "details": {}
     }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
